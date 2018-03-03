@@ -5,7 +5,7 @@ Created on Wed Feb 28 18:00:56 2018
 
 @author: twweng
 
-rewrite the training code using nn to define module
+The basic script of using pytorch to train a 2-layer MLP. 
 
 """
 
@@ -13,54 +13,75 @@ from __future__ import print_function
 import argparse
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+# F is a library of functions, e.g. the loss function, the relu, etc.
+import torch.nn.functional as F 
 import torch.optim as optim
+# transforms can transform the input data (for each image)
 from torchvision import datasets, transforms
 from torch.autograd import Variable
 
 
+## define nn model (the cnn model)
+## we can actually use two nn.Sequential to define the convolution layer and then FC layer (the linear layer with ReLU)
+## e.g. the AlexNet in torchvision: https://github.com/pytorch/vision/blob/master/torchvision/models/alexnet.py
+#class Net(nn.Module):
+#    def __init__(self):
+#        super(Net, self).__init__()
+#        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+#        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+#        self.conv2_drop = nn.Dropout2d()
+#        self.fc1 = nn.Linear(320, 50)
+#        self.fc2 = nn.Linear(50, 10)
 
-## define nn model
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, 10)
-
-    def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
+#    def forward(self, x):
+#        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+#        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+#        x = x.view(-1, 320)
+#        x = F.relu(self.fc1(x))
+#        x = F.dropout(x, training=self.training)
+#        x = self.fc2(x)
+#        return F.log_softmax(x, dim=1)
 
 
 ## define training function
 def train(epoch):
     model.train()
+    print('size of train_loader = {}, N = {}'.format(len(train_loader), N))
     for batch_idx, (data, target) in enumerate(train_loader):
+        #print('batch_idx = {}'.format(batch_idx))
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
-        optimizer.zero_grad()
-        # for current use, previous didn't have this line
-        data = data.view(100,-1)
-        output = model(data)
-        ## loss = F.nll_loss(output, target)
         
+        # Because our current model is linear, so we need to flatten the data to (batch_size, 784). For the "Net" model, they use convolutional layer first, so their input is (batch_size, 1,28,28)
+        # Alternatively, we can add a lambda function in the transforms of the DataLoader (e.g. add such a line: transforms.Lambda(lambda x: x.view(-1)) to reshape each image) for our model)
+        if batch_idx == len(train_loader)-1: # the last batch
+            #print('data size = {}, target = {}'.format(data.shape, target.shape)) 
+            # the last batch of data will not be batch_size if total number of data is not a multiple of batch size, so let data.view to decide first 
+            data = data.view(-1,784) # 784 for mnist
+        else:
+            data = data.view(N,-1)
+        
+        # Forward pass: output is the predicted output, target is the true label
+        output = model(data)
+        # compute the loss
         loss = loss_fn(output,target)
+        ## loss = F.nll_loss(output, target)
+
+        # Before the backward pass, use the optimizer object to zero all of the
+        # gradients for the variables it will update (which are the learnable weights
+        # of the model)
+        optimizer.zero_grad()
+        
+        # Backward pass: compute gradient of the loss with respect to model parameters
         loss.backward()
+        # Calling the step function on an Optimizer makes an update to its parameters
         optimizer.step()
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.data[0]))
-            #print('Target = {}'.format(target))
+
 ## define test function
 def test():
     model.eval()
@@ -69,15 +90,16 @@ def test():
     for data, target in test_loader:
         if args.cuda:
             data, target = data.cuda(), target.cuda()
+    
         data, target = Variable(data, volatile=True), Variable(target)
+        
         data = data.view(1000,-1)
         output = model(data)
-        #test_loss += F.nll_loss(output, target, size_average=False).data[0] # sum up batch loss
         
         if args.loss == 'nll_loss':
-            test_loss += F.nll_loss(output, target, size_average=False).data[0]
+            test_loss += F.nll_loss(output, target, size_average=False).data[0] # sum up batch loss
         elif args.loss == 'cross_entropy':
-            test_loss += F.cross_entropy(output, target, size_average=False).data[0]
+            test_loss += F.cross_entropy(output, target, size_average=False).data[0] # sum up batch loss
         
         pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
@@ -140,22 +162,8 @@ if __name__ == "__main__":
     
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.
-    N, D_in, H, D_out = 100, 784, 100, 10
+    N, D_in, H, D_out = args.batch_size, 784, 100, 10
     
-    # Create random Tensors to hold inputs and outputs, and wrap them in Variables.
-#    x = Variable(torch.randn(N, D_in))
-#    y = Variable(torch.randn(N, D_out), requires_grad=False)
-    
-    # Use the nn package to define our model and loss function.
-   
-#   model = nn.Sequential(
-#              nn.Linear(D_in, H),
-#              nn.ReLU(),
-#              nn.Linear(H, D_out),
-#              nn.Softmax(dim=1)
-#            )
-    #loss_fn = torch.nn.MSELoss(size_average=False)
-   
     if args.loss == 'nll_loss':
         print('using nll_loss!')
         loss_fn = nn.NLLLoss()
@@ -175,13 +183,6 @@ if __name__ == "__main__":
                 nn.Softmax(dim=1)
                 )
 
-
-
-
-   # loss_fn = nn.NLLLoss()
-
-   # loss_fn = nn.CrossEntropyLoss()
-
     if args.cuda:
         model.cuda() 
     
@@ -192,32 +193,8 @@ if __name__ == "__main__":
     learning_rate = 1e-4
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     
-        
-#    for t in range(500):
-#        # Forward pass: compute predicted y by passing x to the model.
-#        y_pred = model(x)
-#    
-#        # Compute and print loss.
-#        loss = loss_fn(y_pred, y)
-#        print(t, loss.data[0])
-#      
-#        # Before the backward pass, use the optimizer object to zero all of the
-#        # gradients for the variables it will update (which are the learnable weights
-#        # of the model)
-#        optimizer.zero_grad()
-#    
-#        # Backward pass: compute gradient of the loss with respect to model parameters
-#        loss.backward()
-#        
-#        # Calling the step function on an Optimizer makes an update to its parameters
-#        optimizer.step()
-          
-#    for epoch in range(1, args.epochs + 1):
-#        train(epoch)
-#        test()
-   
+           
     for epoch in range(1, args.epochs+1):
         train(epoch)
         test()
-    # train(2)
-    
+
