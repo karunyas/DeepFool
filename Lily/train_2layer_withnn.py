@@ -104,11 +104,13 @@ def test():
         pred = output.data.max(1, keepdim=True)[1] # get the index of the max log-probability
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
 
+    print("length", len(test_loader.dataset))
     test_loss /= len(test_loader.dataset)
     print('\nTest loss = {}'.format(test_loss))
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
+    print('\nTest set: Average loss: {:.4f}'.format(test_loss))
+    print('Accuracy: {}/{}'.format(correct, len(test_loader.dataset)))
+    print('percentage ({:.0f}%)\n'.format(100 * int(correct) / len(test_loader.dataset)))
+
 
 
 ## main function
