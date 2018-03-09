@@ -1,4 +1,4 @@
-	#!/usr/bin/env python3
+    #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Wed Feb 28 18:00:56 2018
@@ -147,28 +147,28 @@ if __name__ == "__main__":
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
     
     # def unpickle(file):
-	#     import pickle
-	#     with open(file, 'rb') as fo:
-	#         dicty = pickle.load(fo, encoding='bytes')
-	#     return dicty
+    #     import pickle
+    #     with open(file, 'rb') as fo:
+    #         dicty = pickle.load(fo, encoding='bytes')
+    #     return dicty
 
-	# cifar = unpickle(data_batch_1)
+    # cifar = unpickle(data_batch_1)
     
-	transform = transforms.Compose(
-	    [transforms.ToTensor(),
-	     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    ## reshape when I normalize???
+    transform = transforms.Compose(
+        [transforms.ToTensor(),
+         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)), #ADD THING HERE TO RESHAPE])
 
-	trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-	                                        download=True, transform=transform)
-	trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
-	                                          shuffle=True, num_workers=2)
-	testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-	                                       download=True, transform=transform)
-	testloader = torch.utils.data.DataLoader(testset, batch_size=4,
-	                                         shuffle=False, num_workers=2)
+    trainset = torchvision.datasets.CIFAR10(root='../data', train=True,
+                                            download=True, transform=transform)
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+                                              shuffle=True, num_workers=2)
+    testset = torchvision.datasets.CIFAR10(root='../data', train=False,
+                                           download=True, transform=transform)
+    testloader = torch.utils.data.DataLoader(testset, batch_size=4,
+                                             shuffle=False, num_workers=2)
 
-	classes = ('plane', 'car', 'bird', 'cat',
-	           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+    classes = ('plane', 'car', 'bird', 'cat','deer', 'dog', 'frog', 'horse', 'ship', 'truck')
     
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.
@@ -184,6 +184,7 @@ if __name__ == "__main__":
                 nn.Linear(H, D_out),
                 nn.LogSoftmax(dim=1)
                 )
+
     elif args.loss == 'cross_entropy':
         print('using cross_entropy loss')
         loss_fn = nn.CrossEntropyLoss()
@@ -193,7 +194,7 @@ if __name__ == "__main__":
                 nn.Linear(H, D_out),
                 nn.Softmax(dim=1)
                 )
-    
+    ## take 3072 long row and make it column vector and then run perceptron
 
     if args.cuda:
         model.cuda() 

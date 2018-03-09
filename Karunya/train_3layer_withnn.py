@@ -177,6 +177,7 @@ if __name__ == "__main__":
                 nn.Linear(H2, D_out),
                 nn.LogSoftmax(dim=1)
                 )
+
     elif args.loss == 'cross_entropy':
         print('using cross_entropy loss')
         loss_fn = nn.CrossEntropyLoss()
@@ -198,7 +199,10 @@ if __name__ == "__main__":
     # optimizer which Variables it should update.
     learning_rate = 1e-4
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-    
+    ## Tune the learning rate -- switch to 1e-5 with for loop and compare
+    ## Do cross validation -- split training set as validation set to tune learning rate
+
+    ## Do the same thing for 300, 500 of hidden nodes for loop
            
     for epoch in range(1, args.epochs+1):
         train(epoch)

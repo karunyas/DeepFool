@@ -53,6 +53,8 @@ def train(epoch):
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
         
+        # batch size a multiple of 2
+        
         # Because our current model is linear, so we need to flatten the data to (batch_size, 784). For the "Net" model, they use convolutional layer first, so their input is (batch_size, 1,28,28)
         # Alternatively, we can add a lambda function in the transforms of the DataLoader (e.g. add such a line: transforms.Lambda(lambda x: x.view(-1)) to reshape each image) for our model)
         if batch_idx == len(train_loader)-1: # the last batch
@@ -161,7 +163,6 @@ if __name__ == "__main__":
                        ])),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
     
-    
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.
     N, D_in, H, D_out = args.batch_size, 784, 100, 10
@@ -184,6 +185,7 @@ if __name__ == "__main__":
                 nn.Linear(H, D_out),
                 nn.Softmax(dim=1)
                 )
+    
 
     if args.cuda:
         model.cuda() 
