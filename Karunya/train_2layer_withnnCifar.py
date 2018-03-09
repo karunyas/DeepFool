@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+	#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Last edited on Thu Mar 8 18:04:56 2018
+Created on Wed Feb 28 18:00:56 2018
 
-@author: twweng with modifications by karunyas
+@author: twweng
 
 The basic script of using pytorch to train a 2-layer MLP. 
 
@@ -146,48 +146,54 @@ if __name__ == "__main__":
      
     kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
     
-    ## download dataset 
-    train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-        batch_size=args.test_batch_size, shuffle=True, **kwargs)
+    # def unpickle(file):
+	#     import pickle
+	#     with open(file, 'rb') as fo:
+	#         dicty = pickle.load(fo, encoding='bytes')
+	#     return dicty
+
+	# cifar = unpickle(data_batch_1)
     
+	transform = transforms.Compose(
+	    [transforms.ToTensor(),
+	     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+
+	trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
+	                                        download=True, transform=transform)
+	trainloader = torch.utils.data.DataLoader(trainset, batch_size=4,
+	                                          shuffle=True, num_workers=2)
+	testset = torchvision.datasets.CIFAR10(root='./data', train=False,
+	                                       download=True, transform=transform)
+	testloader = torch.utils.data.DataLoader(testset, batch_size=4,
+	                                         shuffle=False, num_workers=2)
+
+	classes = ('plane', 'car', 'bird', 'cat',
+	           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
     
     # N is batch size; D_in is input dimension;
     # H is hidden dimension; D_out is output dimension.
-    N, D_in, H1, H2, D_out = args.batch_size, 784, 300, 100, 10
+
+    N, D_in, H, D_out = args.batch_size, [10000, 3072], 100, 10
     
     if args.loss == 'nll_loss':
         print('using nll_loss!')
         loss_fn = nn.NLLLoss()
         model = nn.Sequential(
-                nn.Linear(D_in, H1),
+                nn.Linear(D_in, H),
                 nn.ReLU(),
-                nn.Linear(H1, H2),
-                nn.ReLU(),
-                nn.Linear(H2, D_out),
+                nn.Linear(H, D_out),
                 nn.LogSoftmax(dim=1)
                 )
     elif args.loss == 'cross_entropy':
         print('using cross_entropy loss')
         loss_fn = nn.CrossEntropyLoss()
         model = nn.Sequential(
-                nn.Linear(D_in, H1),
+                nn.Linear(D_in, H),
                 nn.ReLU(),
-                nn.Linear(H1, H2),
-                nn.ReLU(),
-                nn.Linear(H2, D_out),
-                nn.LogSoftmax(dim=1)
+                nn.Linear(H, D_out),
+                nn.Softmax(dim=1)
                 )
+    
 
     if args.cuda:
         model.cuda() 
