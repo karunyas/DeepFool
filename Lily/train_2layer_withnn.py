@@ -106,6 +106,7 @@ def test():
 
     test_loss /= len(test_loader.dataset)
     print('\nTest loss = {}'.format(test_loss))
+    print('\nNumber of correct = {}'.format(correct))
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
