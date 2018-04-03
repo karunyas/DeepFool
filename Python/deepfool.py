@@ -4,7 +4,8 @@ import torch as torch
 import copy
 from torch.autograd.gradcheck import zero_gradients
 
-
+## input perceptron as net, take off softmax layer and input to this system
+## put simplest model first 
 def deepfool(image, net, num_classes=10, overshoot=0.02, max_iter=50):
 
     """
